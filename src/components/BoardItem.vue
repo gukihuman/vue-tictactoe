@@ -1,14 +1,23 @@
 <template lang="pug">
+
 .container
   h2(v-if="winner") Winner: {{ winner }} 🌟
   h2(v-else) Players Move: {{ player }}
   button.btn.btn-success.mb-3(@click="reset") Reset
+
   .row(v-for="(_, y) in 3" :key="y")
-    button.square(v-for="(_, x) in 3" :key="x" @click="move(x, y)") {{ squares[x][y] }}
+    button.square(v-for="(_, x) in 3" :key="x" @click="move(x, y)")
+      |{{ squares[x][y] }}
+
+  h2.mt-5 History
+  div.mb-3(v-for="(game, index) in history" :key="index")
+    |Game: {{ index + 1 }}: {{ game }} won
+  button.btn.btn-warning.mb-3(v-if="history.length > 0" @click="clearHistory") Clear history
+
 </template>
 
 <script>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
 const calculateWinner = squares => {
   const lines = [
@@ -42,8 +51,10 @@ export default {
 
     const move = (x, y) => {
       if (winner.value) return
-      squares.value[x][y] = player.value
-      player.value = player.value === 'O' ? 'X' : 'O'
+      if (squares.value[x][y] === '') {
+        squares.value[x][y] = player.value
+        player.value = player.value === 'O' ? 'X' : 'O'
+      }
     }
 
     const reset = () => {
@@ -55,7 +66,25 @@ export default {
       ]
     }
 
-    return { winner, player, squares, move, reset }
+    const history = ref([])
+    watch(winner, (current, previous) => {
+      if (current && !previous) {
+        history.value.push(current)
+        localStorage.setItem('history', JSON.stringify(history.value))
+
+        console.log(history.value)
+      }
+    })
+    const clearHistory = () => {
+      localStorage.removeItem('history')
+      history.value = []
+    }
+
+    onMounted(() => {
+      history.value = JSON.parse(localStorage.getItem('history')) ?? []
+    })
+
+    return { winner, player, squares, move, reset, history, clearHistory }
   }
 }
 </script>
